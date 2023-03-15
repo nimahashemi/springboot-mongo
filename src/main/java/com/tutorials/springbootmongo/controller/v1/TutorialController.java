@@ -1,11 +1,15 @@
 package com.tutorials.springbootmongo.controller.v1;
 
+import com.tutorials.springbootmongo.dto.Price;
+import com.tutorials.springbootmongo.dto.TutorialDTO;
 import com.tutorials.springbootmongo.model.Tutorial;
 import com.tutorials.springbootmongo.repository.TutorialRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,20 +38,49 @@ public class TutorialController {
     }
 
     @GetMapping("/tutorials")
-    public ResponseEntity<List<Tutorial>> getAllTutorials(@RequestParam(required = false) String title) {
+    public ResponseEntity<List<TutorialDTO>> getAllTutorials(@RequestParam(required = false) String title) {
         try {
-            List<Tutorial> tutorials = new ArrayList<Tutorial>();
+            WebClient webClient = WebClient.create("http://localhost:3000");
 
-            if (title == null)
+            List<Price> priceList = new ArrayList<>();
+            Flux<Price> prices = webClient.get()
+                    .uri("/prices")
+                    .retrieve()
+                    .bodyToFlux(Price.class);
+            // prices.subscribe();
+            prices.toStream().forEach(priceList::add);
+
+            List<Tutorial> tutorials = new ArrayList<Tutorial>();
+            List<TutorialDTO> list = new ArrayList<>();
+
+            if (title == null) {
                 tutorialRepository.findAll().forEach(tutorials::add);
-            else
+                tutorials.parallelStream().forEach(tutorial -> {
+                    Optional<Price> p = prices.toStream().filter(price -> price.tutorialId().equals(tutorial.getId())).findFirst();
+                    if (p.isPresent()) {
+                        Price obj = p.get();
+                        TutorialDTO t = new TutorialDTO(tutorial.getId(), tutorial.getTitle(), tutorial.getDescription(), tutorial.isPublished(), obj.price());
+                        list.add(t);
+                    }
+                });
+            }
+            else {
                 tutorialRepository.findByTitleContaining(title).forEach(tutorials::add);
+                tutorials.parallelStream().forEach(tutorial -> {
+                    Optional<Price> p = prices.toStream().filter(price -> price.tutorialId().equals(tutorial.getId())).findFirst();
+                    if (p.isPresent()) {
+                        Price obj = p.get();
+                        TutorialDTO t = new TutorialDTO(tutorial.getId(), tutorial.getTitle(), tutorial.getDescription(), tutorial.isPublished(), obj.price());
+                        list.add(t);
+                    }
+                });
+            }
 
             if (tutorials.isEmpty()) {
                 return new ResponseEntity<>(HttpStatus.NO_CONTENT);
             }
 
-            return new ResponseEntity<>(tutorials, HttpStatus.OK);
+            return new ResponseEntity<>(list, HttpStatus.OK);
         } catch (Exception e) {
             return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
         }
