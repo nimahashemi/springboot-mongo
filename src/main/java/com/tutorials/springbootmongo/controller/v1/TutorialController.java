@@ -5,9 +5,12 @@ import com.tutorials.springbootmongo.dto.TutorialDTO;
 import com.tutorials.springbootmongo.model.Tutorial;
 import com.tutorials.springbootmongo.repository.TutorialRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 
@@ -40,6 +43,13 @@ public class TutorialController {
     @GetMapping("/tutorials")
     public ResponseEntity<List<TutorialDTO>> getAllTutorials(@RequestParam(required = false) String title) {
         try {
+//            RestTemplate restTemplate = new RestTemplate();
+//            ResponseEntity<List<Price>> response = restTemplate.exchange(
+//                    "http://localhost:3000/prices", HttpMethod.GET, null,
+//                    new ParameterizedTypeReference<List<Price>>(){});
+//
+//            List<Price> result = response.getBody();
+
             WebClient webClient = WebClient.create("http://localhost:3000");
 
             List<Price> priceList = new ArrayList<>();
