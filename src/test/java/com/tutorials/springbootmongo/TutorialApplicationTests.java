@@ -34,13 +34,13 @@ import java.util.List;
 @WebMvcTest(TutorialController.class)
 public class TutorialApplicationTests {
 
-    @MockBean
-    TutorialServiceImpl tutorialService;
-
     @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
     @Autowired
     private WebApplicationContext webApplicationContext;
     private MockMvc mockMvc;
+
+    @MockBean
+    TutorialServiceImpl tutorialService;
 
     @BeforeEach
     public void setUp() {
