@@ -1,158 +1,82 @@
 package com.tutorials.springbootmongo.controller.v1;
 
-import com.tutorials.springbootmongo.dto.Price;
+import com.tutorials.springbootmongo.dto.SaveDTO;
 import com.tutorials.springbootmongo.dto.TutorialDTO;
 import com.tutorials.springbootmongo.model.Tutorial;
-import com.tutorials.springbootmongo.repository.TutorialRepository;
+import com.tutorials.springbootmongo.service.TutorialService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Flux;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/v1")
 public class TutorialController {
 
-    private final TutorialRepository tutorialRepository;
+    private final TutorialService tutorialService;
 
     @Autowired
-    public TutorialController(TutorialRepository tutorialRepository) {
-        this.tutorialRepository = tutorialRepository;
+    public TutorialController(TutorialService tutorialService) {
+        this.tutorialService = tutorialService;
     }
 
+
     @PostMapping("/tutorials")
-    public ResponseEntity<Tutorial> createTutorial(@RequestBody Tutorial tutorial) {
-        try {
-            // Tutorial _tutorial = tutorialRepository.save(new Tutorial(tutorial.getTitle(), tutorial.getDescription(), false));
-            Tutorial _tutorial = tutorialRepository.save(tutorial);
-            return new ResponseEntity<>(_tutorial, HttpStatus.CREATED);
-        } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+    public ResponseEntity<SaveDTO> createTutorial(@RequestBody TutorialDTO tutorial) {
+        return new ResponseEntity<>(tutorialService.save(tutorial), HttpStatus.CREATED);
     }
 
     @GetMapping("/tutorials")
     public ResponseEntity<List<TutorialDTO>> getAllTutorials(@RequestParam(required = false) String title) {
-        try {
-//            RestTemplate restTemplate = new RestTemplate();
-//            ResponseEntity<List<Price>> response = restTemplate.exchange(
-//                    "http://localhost:3000/prices", HttpMethod.GET, null,
-//                    new ParameterizedTypeReference<List<Price>>(){});
-//
-//            List<Price> result = response.getBody();
-
-            WebClient webClient = WebClient.create("http://localhost:3000");
-
-            List<Price> priceList = new ArrayList<>();
-            Flux<Price> prices = webClient.get()
-                    .uri("/prices")
-                    .retrieve()
-                    .bodyToFlux(Price.class);
-            // prices.subscribe();
-            prices.toStream().forEach(priceList::add);
-
-            List<Tutorial> tutorials = new ArrayList<Tutorial>();
-            List<TutorialDTO> list = new ArrayList<>();
-
-            if (title == null) {
-                tutorialRepository.findAll().forEach(tutorials::add);
-                tutorials.parallelStream().forEach(tutorial -> {
-                    Optional<Price> p = prices.toStream().filter(price -> price.tutorialId().equals(tutorial.getId())).findFirst();
-                    if (p.isPresent()) {
-                        Price obj = p.get();
-                        TutorialDTO t = new TutorialDTO(tutorial.getId(), tutorial.getTitle(), tutorial.getDescription(), tutorial.isPublished(), obj.price());
-                        list.add(t);
-                    }
-                });
-            }
-            else {
-                tutorialRepository.findByTitleContaining(title).forEach(tutorials::add);
-                tutorials.parallelStream().forEach(tutorial -> {
-                    Optional<Price> p = prices.toStream().filter(price -> price.tutorialId().equals(tutorial.getId())).findFirst();
-                    if (p.isPresent()) {
-                        Price obj = p.get();
-                        TutorialDTO t = new TutorialDTO(tutorial.getId(), tutorial.getTitle(), tutorial.getDescription(), tutorial.isPublished(), obj.price());
-                        list.add(t);
-                    }
-                });
-            }
-
-            if (tutorials.isEmpty()) {
-                return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-            }
-
-            return new ResponseEntity<>(list, HttpStatus.OK);
-        } catch (Exception e) {
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+        List<TutorialDTO> list = tutorialService.find(title);
+        if (list.isEmpty()) {
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         }
+        return new ResponseEntity<>(list, HttpStatus.OK);
     }
 
     @GetMapping("/tutorials/{id}")
-    public ResponseEntity<Tutorial> getTutorialById(@PathVariable("id") String id) {
-        Optional<Tutorial> tutorialData = tutorialRepository.findById(id);
+    public ResponseEntity<TutorialDTO> getTutorialById(@PathVariable("id") String id) {
+        TutorialDTO tutorialDTO = tutorialService.findById(id);
 
-        if (tutorialData.isPresent()) {
-            return new ResponseEntity<>(tutorialData.get(), HttpStatus.OK);
+        if (tutorialDTO != null) {
+            return new ResponseEntity<>(tutorialDTO, HttpStatus.OK);
         } else {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
 
     @GetMapping("/tutorials/published")
-    public ResponseEntity<List<Tutorial>> findByPublished() {
-        try {
-            List<Tutorial> tutorials = tutorialRepository.findByPublished(true);
+    public ResponseEntity<List<TutorialDTO>> findByPublished() {
+        List<TutorialDTO> tutorials = tutorialService.findByPublished(true);
 
-            if (tutorials.isEmpty()) {
-                return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-            }
-            return new ResponseEntity<>(tutorials, HttpStatus.OK);
-        } catch (Exception e) {
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        if (tutorials.isEmpty()) {
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         }
+        return new ResponseEntity<>(tutorials, HttpStatus.OK);
     }
 
     @PutMapping("/tutorials/{id}")
-    public ResponseEntity<Tutorial> updateTutorial(@PathVariable("id") String id, @RequestBody Tutorial tutorial) {
-        Optional<Tutorial> tutorialData = tutorialRepository.findById(id);
+    public ResponseEntity<TutorialDTO> updateTutorial(@PathVariable("id") String id, @RequestBody Tutorial tutorial) {
+        TutorialDTO tutorialDTO = tutorialService.findById(id);
 
-        if (tutorialData.isPresent()) {
-            Tutorial _tutorial = tutorialData.get();
-            _tutorial.setTitle(tutorial.getTitle());
-            _tutorial.setDescription(tutorial.getDescription());
-            _tutorial.setPublished(tutorial.isPublished());
-            return new ResponseEntity<>(tutorialRepository.save(_tutorial), HttpStatus.OK);
-        } else {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        if (tutorialDTO != null) {
+            tutorialService.update(new Tutorial(tutorialDTO.id(), tutorialDTO.title(), tutorialDTO.description(), tutorialDTO.published()), tutorial, tutorialDTO.price());
         }
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
     @DeleteMapping("/tutorials/{id}")
     public ResponseEntity<HttpStatus> deleteTutorial(@PathVariable("id") String id) {
-        try {
-            tutorialRepository.deleteById(id);
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-        } catch (Exception e) {
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+        tutorialService.delete(id);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
     @DeleteMapping("/tutorials")
     public ResponseEntity<HttpStatus> deleteAllTutorials() {
-        try {
-            tutorialRepository.deleteAll();
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-        } catch (Exception e) {
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+        tutorialService.deleteAll();
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 }
