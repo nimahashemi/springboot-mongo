@@ -5,6 +5,8 @@ import com.tutorials.springbootmongo.dto.TutorialDTO;
 import com.tutorials.springbootmongo.model.Tutorial;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
@@ -29,7 +31,7 @@ public class SystemTests {
         assertNotNull("Entity should not be null.", entity.toString());
         // Assertions.assertThat(tutorials).extracting(TutorialDTO::title).containsOnly("Spring");
 
-        restTemplate.delete(url + "/" + entity.getBody().getId());
-        Assertions.assertThat(restTemplate.getForObject(url, TutorialDTO[].class)).isEmpty();
+        restTemplate.delete("http://localhost:8080/api/v1/tutorials");
+        Assertions.assertThat(restTemplate.getForObject(url, TutorialDTO[].class)).isNull();
     }
 }

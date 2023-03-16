@@ -9,6 +9,7 @@ import com.tutorials.springbootmongo.dto.TutorialDTO;
 import com.tutorials.springbootmongo.service.TutorialService;
 
 import com.tutorials.springbootmongo.service.impl.TutorialServiceImpl;
+import org.assertj.core.api.Assertions;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,14 +25,15 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.context.WebApplicationContext;
 
 import java.util.Arrays;
 import java.util.List;
 
-@ExtendWith(SpringExtension.class)
-@Import(TutorialController.class)
-@WebMvcTest(TutorialController.class)
+//@ExtendWith(SpringExtension.class)
+//@WebMvcTest(TutorialController.class)
+@SpringBootTest
 public class TutorialApplicationTests {
 
     @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
@@ -47,15 +49,23 @@ public class TutorialApplicationTests {
         mockMvc = MockMvcBuilders.webAppContextSetup(this.webApplicationContext).build();
     }
 
+//    @Test
+//    public void testfindAll() throws Exception {
+//        TutorialDTO tutorial = new TutorialDTO("6412c3e9211d6a1d42befb52", "Spring boot 3", "Tutorial 3", false, 3000);
+//        List<TutorialDTO> tutorials = Arrays.asList(tutorial);
+//
+//        Mockito.when(tutorialService.find("")).thenReturn(tutorials);
+//
+//        mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/tutorials"))
+//                .andExpect(MockMvcResultMatchers.status().isOk());
+//    }
+
     @Test
     public void testfindAll() throws Exception {
-        TutorialDTO tutorial = new TutorialDTO("6412c3e9211d6a1d42befb52", "Spring boot 3", "Tutorial 3", false, 3000);
-        List<TutorialDTO> tutorials = Arrays.asList(tutorial);
-
-        Mockito.when(tutorialService.find("")).thenReturn(tutorials);
-
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/tutorials"))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+        RestTemplate restTemplate = new RestTemplate();
+        String url = "http://localhost:8080/api/v1/tutorials";
+        Assertions.assertThat(restTemplate.getForObject(url, TutorialDTO[].class)).isNotEmpty();
     }
+
 
 }
